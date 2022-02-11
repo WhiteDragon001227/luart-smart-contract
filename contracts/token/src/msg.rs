@@ -1,7 +1,7 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use cosmwasm_std::{StdError, StdResult, Uint128};
+use cosmwasm_std::{Decimal, StdError, StdResult, Uint128};
 use cw20::{Cw20Coin, MinterResponse};
 
 /// This structure describes the parameters used for creating a token contract.
@@ -18,6 +18,12 @@ pub struct InstantiateMsg {
     pub initial_balances: Vec<Cw20Coin>,
     /// Minting controls specified in a [`MinterResponse`] structure
     pub mint: Option<MinterResponse>,
+    /// The flag used to enable/disable fees from swap transactions
+    pub enable_swap_fee: bool,
+    /// The percent fee amount from every token swap to any other
+    pub swap_percent_fee: Decimal,
+    /// The fee receiver address
+    pub fee_receiver: String,
 }
 
 /// This structure describes a migration message.
