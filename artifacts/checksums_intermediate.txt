@@ -1,1 +1,1 @@
-98be2e075e8624130b9d02b7b65053f8abae5fde3c2e12e5044e5ea3b9cdaf6e  target/wasm32-unknown-unknown/release/luart_token.wasm
+45ca6ddd685263b2826f78f812549b5c4c63d572beca5999110473fe59132b39  target/wasm32-unknown-unknown/release/luart_token.wasm
