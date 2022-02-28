@@ -145,32 +145,29 @@ pub fn execute_send(
 ) -> Result<Response, ContractError> {
     let fee_config = SWAP_FEE_CONFIG.may_load(deps.storage)?;
 
-    match fee_config {
-        Some(fee_config) => {
-            // Calculate fee amount based on message type
-            let fee_amount = calculate_fee_amount(amount, &msg, &fee_config);
+    if let Some(fee_config) = fee_config {
+        // Calculate fee amount based on message type
+        let fee_amount = calculate_fee_amount(amount, &msg, &fee_config);
 
-            // If the fee is non zero then transfer the fee amount to the fee recipient address and execute cw20 send for left amount
-            if !fee_amount.is_zero() {
-                // Transfer fee to configured receiver address
-                transfer(deps.storage, &info.sender, &fee_config.fee_receiver, fee_amount)?;
+        // If the fee is non zero then transfer the fee amount to the fee recipient address and execute cw20 send for left amount
+        if !fee_amount.is_zero() {
+            // Transfer fee to configured receiver address
+            transfer(deps.storage, &info.sender, &fee_config.fee_receiver, fee_amount)?;
 
-                let send_amount = amount.sub(fee_amount);
-                let res = cw20_execute_send(deps, env, info.clone(), contract.clone(), send_amount, msg)?;
+            let send_amount = amount.sub(fee_amount);
+            let res = cw20_execute_send(deps, env, info.clone(), contract.clone(), send_amount, msg)?;
 
-                return Ok(Response::new()
-                    .add_attribute("action", "send")
-                    .add_attribute("from", &info.sender)
-                    .add_attribute("to", &contract)
-                    .add_attribute("amount", amount)
-                    .add_attribute("fee_amount", fee_amount.to_string())
-                    .add_submessages(res.messages));
-            }
+            return Ok(Response::new()
+                .add_attribute("action", "send")
+                .add_attribute("from", &info.sender)
+                .add_attribute("to", &contract)
+                .add_attribute("amount", amount)
+                .add_attribute("fee_amount", fee_amount.to_string())
+                .add_submessages(res.messages));
         }
-        None => ()
     }
 
-    Ok(cw20_execute_send(deps, env, info, contract, amount, msg)?)
+    cw20_execute_send(deps, env, info, contract, amount, msg)
 }
 
 pub fn execute_send_from(
@@ -184,34 +181,31 @@ pub fn execute_send_from(
 ) -> Result<Response, ContractError> {
     let fee_config = SWAP_FEE_CONFIG.may_load(deps.storage)?;
 
-    match fee_config {
-        Some(fee_config) => {
-            // Calculate fee amount based on message type
-            let fee_amount = calculate_fee_amount(amount, &msg, &fee_config);
+    if let Some(fee_config) = fee_config {
+        // Calculate fee amount based on message type
+        let fee_amount = calculate_fee_amount(amount, &msg, &fee_config);
 
-            // If the fee is non zero then transfer the fee amount to the fee recipient address and execute cw20 send for left amount
-            if !fee_amount.is_zero() {
-                // Transfer fee to configured receiver address
-                let owner_addr = deps.api.addr_validate(&owner)?;
-                transfer(deps.storage, &owner_addr, &fee_config.fee_receiver, fee_amount)?;
+        // If the fee is non zero then transfer the fee amount to the fee recipient address and execute cw20 send for left amount
+        if !fee_amount.is_zero() {
+            // Transfer fee to configured receiver address
+            let owner_addr = deps.api.addr_validate(&owner)?;
+            transfer(deps.storage, &owner_addr, &fee_config.fee_receiver, fee_amount)?;
 
-                let send_amount = amount.sub(fee_amount);
-                let res = cw20_execute_send_from(deps, env, info.clone(), owner.clone(), contract.clone(), send_amount, msg)?;
+            let send_amount = amount.sub(fee_amount);
+            let res = cw20_execute_send_from(deps, env, info.clone(), owner.clone(), contract.clone(), send_amount, msg)?;
 
-                return Ok(Response::new()
-                    .add_attribute("action", "send_from")
-                    .add_attribute("from", &owner)
-                    .add_attribute("to", &contract)
-                    .add_attribute("by", &info.sender)
-                    .add_attribute("amount", amount)
-                    .add_attribute("fee_amount", fee_amount.to_string())
-                    .add_submessages(res.messages));
-            }
+            return Ok(Response::new()
+                .add_attribute("action", "send_from")
+                .add_attribute("from", &owner)
+                .add_attribute("to", &contract)
+                .add_attribute("by", &info.sender)
+                .add_attribute("amount", amount)
+                .add_attribute("fee_amount", fee_amount.to_string())
+                .add_submessages(res.messages));
         }
-        None => ()
     }
 
-    Ok(cw20_execute_send_from(deps, env, info, owner, contract, amount, msg)?)
+    cw20_execute_send_from(deps, env, info, owner, contract, amount, msg)
 }
 
 pub fn update_swap_fee_config(
@@ -230,24 +224,20 @@ pub fn update_swap_fee_config(
         return Err(ContractError::Unauthorized {});
     }
 
-    match fee_admin {
-        Some(fee_admin) => swap_fee_config.fee_admin = deps.api.addr_validate(&fee_admin)?,
-        None => (),
+    if let Some(fee_admin) = fee_admin {
+        swap_fee_config.fee_admin = deps.api.addr_validate(&fee_admin)?;
     }
 
-    match enable_swap_fee {
-        Some(enable_swap_fee) => swap_fee_config.enable_swap_fee = enable_swap_fee,
-        None => ()
+    if let Some(enable_swap_fee) = enable_swap_fee {
+        swap_fee_config.enable_swap_fee = enable_swap_fee;
     }
 
-    match swap_percent_fee {
-        Some(swap_percent_fee) => swap_fee_config.swap_percent_fee = swap_percent_fee,
-        None => ()
+    if let Some(swap_percent_fee) = swap_percent_fee {
+        swap_fee_config.swap_percent_fee = swap_percent_fee
     }
 
-    match fee_receiver {
-        Some(fee_receiver) => swap_fee_config.fee_receiver = deps.api.addr_validate(&fee_receiver)?,
-        None => ()
+    if let Some(fee_receiver) = fee_receiver {
+        swap_fee_config.fee_receiver = deps.api.addr_validate(&fee_receiver)?;
     }
 
     SWAP_FEE_CONFIG.save(deps.storage, &swap_fee_config)?;
@@ -323,14 +313,14 @@ fn transfer(
 
     BALANCES.update(
         storage,
-        &sender,
+        sender,
         |balance: Option<Uint128>| -> StdResult<_> {
             Ok(balance.unwrap_or_default().checked_sub(amount)?)
         },
     )?;
     BALANCES.update(
         storage,
-        &recipient,
+        recipient,
         |balance: Option<Uint128>| -> StdResult<_> { Ok(balance.unwrap_or_default() + amount) },
     )?;
 
